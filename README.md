@@ -105,11 +105,11 @@ Precision: The proportion of messages predicted as spam that are actually spam.
 Recall: The proportion of actual spam messages correctly detected.
 F1-score: The harmonic mean of precision and recall.
 
-# Model                   Accuracy     Precision     Recall     F1-score
-Logistic Regression        98.28%	      95.43%	     94.47%	     94.95%
-XGBoost	                   97.42%	      91.63%	     93.47%	     92.54%
-DistilBERT	               99.74%	      100.00%	     98.49%  	   99.24%
-Ensemble	                 99.31%    	  100.00%	     95.98%	     97.95%
+# Models
+1. Logistic Regression: Accuracy(98.28%), Precision(95.43%), Recall(94.47%), F1-score(94.95%)
+2. XGBoost: Accuracy(97.42%), Precision(91.63%), Recall(93.47%), F1-score(92.54%)
+3. DistilBERT: Accuracy(99.74%), Precision(100.00%), Recall(98.49%), F1-score(99.24%)
+4. Ensemble: Accuracy(99.31%), Precision(100.00%), Recall(95.98%), F1-score(97.95%)
 
 # Future Improvements
 Deploy SpamShield as a publicly accessible web application.
@@ -123,6 +123,6 @@ SpamShield is an educational machine learning project. Its predictions are not g
 Model performance depends on the quality and diversity of the training data.
 
 # Author
-Haneen Gouda
-AI Engineering Student
+Haneen Gouda,
+AI Engineering Student,
 GitHub: Haneen-Gouda
