@@ -76,27 +76,27 @@ Prerequisites
 -pip.
 
 1. Clone the Repository
-git clone https://github.com/Haneen-Gouda/SpamShield.git
-cd SpamShield
+-git clone https://github.com/Haneen-Gouda/SpamShield.git
+-cd SpamShield
 
 2. Create a Virtual Environment
-python -m venv .venv
-Activate it on Windows:
-.venv\Scripts\activate
+-python -m venv .venv
+-Activate it on Windows:
+-.venv\Scripts\activate
 
 3. Install Dependencies
-pip install -r requirements.txt
+-pip install -r requirements.txt
 
 4. Train the Models
-If the trained model files are not included, run the training script:
-python train_models.py
-If the project supports training without DistilBERT, you can use:
-python train_models.py --skip-bert
+-If the trained model files are not included, run the training script:
+-python train_models.py
+-If the project supports training without DistilBERT, you can use:
+-python train_models.py --skip-bert
 
 5. Start the Application
-uvicorn app:app --host 127.0.0.1 --port 8000
-Open the following address in your browser:
-http://127.0.0.1:8000
+-uvicorn app:app --host 127.0.0.1 --port 8000
+-Open the following address in your browser:
+-http://127.0.0.1:8000
 
 # Model Evaluation
 The models can be evaluated using the following metrics:
