@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SpamShield — Message Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --void:    #070C18;
+    --panel:   #0D1B2A;
+    --panel2:  #111E30;
+    --border:  #1A2E45;
+    --cyan:    #00D4FF;
+    --cyan-dim:#00D4FF33;
+    --red:     #FF3860;
+    --red-dim: #FF386022;
+    --green:   #23D18B;
+    --grn-dim: #23D18B22;
+    --muted:   #5A6A7E;
+    --text:    #C8D8E8;
+    --white:   #EEF4FF;
+  }
+
+  body {
+    background: var(--void);
+    font-family: 'Space Grotesk', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 60px;
+    overflow-x: hidden;
+  }
+
+  /* --- GRID BG --- */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Radial glow */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 500px;
+    background: radial-gradient(ellipse, #00D4FF18 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; width: 100%; max-width: 760px; }
+
+  /* --- HEADER --- */
+  header { text-align: center; margin-bottom: 44px; }
+
+  .logo-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+
+  .logo-icon {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--cyan), #0060FF);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 0 28px #00D4FF55;
+    flex-shrink: 0;
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: -0.5px;
+  }
+
+  h1 span { color: var(--cyan); }
+
+  .tagline {
+    font-size: 0.9rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* Model badges */
+  .model-badges {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: var(--panel);
+    letter-spacing: 0.04em;
+  }
+
+  /* --- CARD --- */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 24px 80px #00000070, inset 0 1px 0 #ffffff08;
+  }
+
+  .card-header {
+    padding: 20px 28px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-red   { background: #FF5F57; }
+  .dot-yel   { background: #FEBC2E; }
+  .dot-grn   { background: #28C840; }
+
+  .card-label {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .card-body { padding: 28px; }
+
+  /* --- TEXTAREA --- */
+  .textarea-wrapper { position: relative; margin-bottom: 20px; }
+
+  textarea {
+    width: 100%;
+    min-height: 180px;
+    background: var(--panel2);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    color: var(--white);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.65;
+    padding: 18px 20px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  textarea::placeholder { color: var(--muted); }
+
+  textarea:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 3px var(--cyan-dim);
+  }
+
+  .char-count {
+    position: absolute;
+    bottom: 12px;
+    right: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  /* --- BUTTON --- */
+  .btn-analyze {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #0099CC, #005EEE);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+    transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px #00D4FF30;
+  }
+
+  .btn-analyze:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 32px #00D4FF44;
+  }
+
+  .btn-analyze:active:not(:disabled) { transform: translateY(0); }
+
+  .btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-analyze .shine {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, #ffffff18 50%, transparent 100%);
+    transform: translateX(-100%);
+    animation: none;
+  }
+
+  .btn-analyze.loading .shine {
+    animation: shimmer 1.2s infinite;
+  }
+
+  @keyframes shimmer {
+    to { transform: translateX(100%); }
+  }
+
+  /* --- SCAN LINE --- */
+  .scan-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .scan-overlay.active { display: block; }
+
+  .scan-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    animation: scan 1.6s linear infinite;
+  }
+
+  @keyframes scan {
+    from { top: 0; }
+    to   { top: 100%; }
+  }
+
+  /* --- RESULT PANEL --- */
+  .result-panel {
+    margin-top: 24px;
+    border-radius: 16px;
+    overflow: hidden;
+    display: none;
+    animation: fadeUp 0.4s ease;
+  }
+
+  .result-panel.visible { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-verdict {
+    padding: 24px 28px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .result-panel.spam .result-verdict { background: var(--red-dim); border: 1px solid #FF386044; border-radius: 16px 16px 0 0; }
+  .result-panel.ham  .result-verdict { background: var(--grn-dim); border: 1px solid #23D18B44; border-radius: 16px 16px 0 0; }
+
+  .verdict-icon {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    flex-shrink: 0;
+  }
+
+  .spam .verdict-icon { background: #FF386022; border: 2px solid var(--red); }
+  .ham  .verdict-icon { background: #23D18B22; border: 2px solid var(--green); }
+
+  .verdict-text h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+  }
+
+  .spam .verdict-text h2 { color: var(--red); }
+  .ham  .verdict-text h2 { color: var(--green); }
+
+  .verdict-text p {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  .verdict-score {
+    margin-left: auto;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .verdict-score .pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .spam .pct { color: var(--red); }
+  .ham  .pct { color: var(--green); }
+
+  .verdict-score .pct-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* Progress bar */
+  .prob-bar-wrap {
+    padding: 0 28px 6px;
+    background: var(--panel2);
+  }
+
+  .spam .prob-bar-wrap { border: 1px solid #FF386044; border-top: none; }
+  .ham  .prob-bar-wrap { border: 1px solid #23D18B44; border-top: none; }
+
+  .prob-bar-track {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    overflow: hidden;
+    margin-top: 16px;
+  }
+
+  .prob-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    width: 0%;
+    transition: width 1s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  .spam .prob-bar-fill { background: linear-gradient(90deg, #FF386088, var(--red)); }
+  .ham  .prob-bar-fill { background: linear-gradient(90deg, #23D18B88, var(--green)); }
+
+  /* Model breakdown */
+  .model-breakdown {
+    padding: 20px 28px 24px;
+    background: var(--panel2);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+
+  .spam .model-breakdown { border: 1px solid #FF386044; border-top: none; border-radius: 0 0 16px 16px; }
+  .ham  .model-breakdown { border: 1px solid #23D18B44; border-top: none; border-radius: 0 0 16px 16px; }
+
+  .model-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+  }
+
+  .model-name {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .model-score {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--white);
+  }
+
+  .model-bar {
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border);
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .model-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    width: 0%;
+    transition: width 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  /* --- FOOTER --- */
+  footer {
+    margin-top: 40px;
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+
+  footer code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    color: var(--cyan);
+  }
+
+  /* --- NAV --- */
+  .nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 24px;
+    background: #070C18cc;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav a {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-decoration: none;
+    padding: 7px 18px;
+    border-radius: 8px;
+    color: var(--muted);
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+
+  .nav a:hover { color: var(--white); background: var(--panel2); border-color: var(--border); }
+  .nav a.active { color: var(--cyan); background: var(--cyan-dim); border-color: #00D4FF44; }
+
+  /* --- RESPONSIVE --- */
+  @media (max-width: 520px) {
+    h1 { font-size: 1.5rem; }
+    .model-breakdown { grid-template-columns: 1fr; }
+    .verdict-score { display: none; }
+  }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a href="spam_detector_gui.html" class="active">🔍 Analyzer</a>
+  <a href="dashboard.html">📊 Dashboard</a>
+</nav>
+<div style="height:56px"></div>
+<div class="wrapper">
+
+  <header>
+    <div class="logo-row">
+      <div class="logo-icon">🛡️</div>
+      <h1>Spam<span>Shield</span></h1>
+    </div>
+    <p class="tagline">Ensemble Message Intelligence</p>
+    <div class="model-badges">
+      <span class="badge">Logistic Regression</span>
+      <span class="badge">XGBoost</span>
+      <span class="badge">DistilBERT</span>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="dot dot-red"></div>
+      <div class="dot dot-yel"></div>
+      <div class="dot dot-grn"></div>
+      <span class="card-label">message analyzer</span>
+    </div>
+
+    <div class="card-body">
+      <div class="textarea-wrapper">
+        <textarea
+          id="msgInput"
+          placeholder="Paste or type a message here to analyze it for spam…"
+          maxlength="2000"
+          oninput="updateCount()"
+        ></textarea>
+        <span class="char-count" id="charCount">0 / 2000</span>
+        <div class="scan-overlay" id="scanOverlay">
+          <div class="scan-line"></div>
+        </div>
+      </div>
+
+      <button class="btn-analyze" id="analyzeBtn" onclick="analyze()">
+        <div class="shine" id="btnShine"></div>
+        <span id="btnIcon">🔍</span>
+        <span id="btnLabel">Analyze Message</span>
+      </button>
+
+      <!-- RESULT -->
+      <div class="result-panel" id="resultPanel">
+
+        <div class="result-verdict">
+          <div class="verdict-icon" id="verdictIcon"></div>
+          <div class="verdict-text">
+            <h2 id="verdictTitle"></h2>
+            <p id="verdictSub"></p>
+          </div>
+          <div class="verdict-score">
+            <div class="pct" id="verdictPct"></div>
+            <div class="pct-label">spam probability</div>
+          </div>
+        </div>
+
+        <div class="prob-bar-wrap">
+          <div class="prob-bar-track">
+            <div class="prob-bar-fill" id="probBarFill"></div>
+          </div>
+        </div>
+
+        <div class="model-breakdown">
+          <div class="model-card">
+            <div class="model-name">Logistic Reg.</div>
+            <div class="model-score" id="lrScore">—</div>
+            <div class="model-bar">
+              <div class="model-bar-fill" id="lrBar" style="background: var(--cyan);"></div>
+            </div>
+          </div>
+          <div class="model-card">
+            <div class="model-name">XGBoost</div>
+            <div class="model-score" id="xgbScore">—</div>
+            <div class="model-bar">
+              <div class="model-bar-fill" id="xgbBar" style="background: #A855F7;"></div>
+            </div>
+          </div>
+          <div class="model-card">
+            <div class="model-name">DistilBERT</div>
+            <div class="model-score" id="bertScore">—</div>
+            <div class="model-bar">
+              <div class="model-bar-fill" id="bertBar" style="background: #F97316;"></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /result-panel -->
+    </div>
+  </div>
+
+  <footer>
+    <p>Connects to the SpamShield API at <code>/predict</code>. Run the application using the instructions in README.md.</p>
+    <p style="margin-top:6px">Classification mirrors your Python exactly: <code>avg ≥ 0.5 → SPAM</code>, else <code>HAM</code>.</p>
+  </footer>
+
+</div>
+
+<script>
+  /* ─── UI helpers ─── */
+  function updateCount() {
+    const v = document.getElementById('msgInput').value.length;
+    document.getElementById('charCount').textContent = `${v} / 2000`;
+  }
+
+  function setLoading(on) {
+    const btn = document.getElementById('analyzeBtn');
+    const shine = document.getElementById('btnShine');
+    const icon  = document.getElementById('btnIcon');
+    const label = document.getElementById('btnLabel');
+    const scan  = document.getElementById('scanOverlay');
+
+    btn.disabled = on;
+    if (on) {
+      btn.classList.add('loading');
+      shine.style.animation = 'shimmer 1.2s infinite';
+      icon.textContent  = '⏳';
+      label.textContent = 'Scanning…';
+      scan.classList.add('active');
+    } else {
+      btn.classList.remove('loading');
+      shine.style.animation = '';
+      icon.textContent  = '🔍';
+      label.textContent = 'Analyze Message';
+      scan.classList.remove('active');
+    }
+  }
+
+  function showResult(spamProb, lrProb, xgbProb, bertProb) {
+    const isSpam = spamProb >= 0.5;
+
+     if (spamProb < 0.5) {
+        spamProb = 1 - spamProb;
+    }
+
+    const pct = Math.round(spamProb * 100);
+
+    const panel     = document.getElementById('resultPanel');
+    const icon      = document.getElementById('verdictIcon');
+    const title     = document.getElementById('verdictTitle');
+    const sub       = document.getElementById('verdictSub');
+    const pctEl     = document.getElementById('verdictPct');
+    const barFill   = document.getElementById('probBarFill');
+
+    // reset class
+    panel.className = 'result-panel visible ' + (isSpam ? 'spam' : 'ham');
+
+    icon.textContent   = isSpam ? '🚨' : '✅';
+    title.textContent  = isSpam ? 'SPAM' : 'HAM';
+    pctEl.textContent  = pct + '%';
+
+    if (isSpam) {
+      sub.textContent = 'This message shows characteristics of unsolicited spam.';
+    } else {
+      sub.textContent = 'This message appears to be legitimate.';
+    }
+
+    // animate bar after a tick
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        barFill.style.width = pct + '%';
+      });
+    });
+
+    // individual model scores
+    function setModel(scoreId, barId, prob) {
+      if (prob < 0.5) {
+        prob = 1 - prob;
+      }
+      const p = Math.round(prob * 100);
+      document.getElementById(scoreId).textContent = p + '%';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.getElementById(barId).style.width = p + '%';
+        });
+      });
+    }
+
+    setModel('lrScore', 'lrBar', lrProb);
+    setModel('xgbScore', 'xgbBar', xgbProb);
+    setModel('bertScore', 'bertBar', bertProb);
+  }
+
+  /* ─── MAIN ANALYZE FUNCTION ───
+     Calls Python backend (FastAPI).
+     Expected JSON response: { lr: 0.xx, xgb: 0.xx, bert: 0.xx, avg: 0.xx }
+     Classification rule
+       avg_pred >= 0.5  →  SPAM
+       avg_pred <  0.5  →  HAM
+  ─── */
+  const BACKEND_URL = '/predict';
+
+  async function analyze() {
+    const msg = document.getElementById('msgInput').value.trim();
+    if (!msg) {
+      document.getElementById('msgInput').focus();
+      return;
+    }
+
+    setLoading(true);
+
+    // reset previous result
+    document.getElementById('resultPanel').className = 'result-panel';
+    document.getElementById('probBarFill').style.width = '0%';
+    ['lrBar','xgbBar','bertBar'].forEach(id => {
+      document.getElementById(id).style.width = '0%';
+    });
+
+    try {
+      const resp = await fetch(BACKEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg })
+      });
+
+      if (!resp.ok) throw new Error(`Server error: ${resp.status}`);
+
+      const data = await resp.json();
+
+      // data must contain: { lr, xgb, bert, avg }
+      // avg is the direct avg_pred
+      // Classification: avg >= 0.5 → SPAM, else HAM 
+      showResult(data.avg, data.lr, data.xgb, data.bert);
+
+    } catch (err) {
+      setLoading(false);
+      showError(err.message);
+      return;
+    }
+
+    setLoading(false);
+  }
+
+  function showError(msg) {
+    const panel = document.getElementById('resultPanel');
+    panel.className = 'result-panel visible ham'; // neutral styling
+    document.getElementById('verdictIcon').textContent = '⚠️';
+    document.getElementById('verdictTitle').textContent = 'Connection Error';
+    document.getElementById('verdictTitle').style.color = '#F97316';
+    document.getElementById('verdictSub').textContent = msg + ' — make sure your Python backend is running.';
+    document.getElementById('verdictPct').textContent = '—';
+    ['lrScore','xgbScore','bertScore'].forEach(id => {
+      document.getElementById(id).textContent = '—';
+    });
+  }
+
+  // allow Ctrl+Enter to analyze
+  document.getElementById('msgInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) analyze();
+  });
+</script>
+</body>
+</html>
